@@ -12,14 +12,22 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# =========================
+# ARCHIVOS / CONFIG
+# =========================
+
 DATA_DIR = "data_petshop"
+CHAT_DIR = f"{DATA_DIR}/chat_adjuntos"
+
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(CHAT_DIR, exist_ok=True)
 
 VENTAS_FILE = f"{DATA_DIR}/ventas.csv"
 STOCK_FILE = f"{DATA_DIR}/stock.csv"
 COMPRAS_FILE = f"{DATA_DIR}/compras.csv"
 CLIENTES_FILE = f"{DATA_DIR}/clientes.csv"
 PERDIDAS_FILE = f"{DATA_DIR}/perdidas.csv"
+CHAT_FILE = f"{DATA_DIR}/chat.csv"
 
 LOGO_FILE = "logo.png"
 
@@ -52,20 +60,39 @@ USUARIOS = {
     "admin": {
         "password": "1234",
         "rol": "Administrador",
-        "sucursal": "Todas"
+        "sucursal": "Todas",
+        "nombre": "Dueño"
     },
     "encargado": {
         "password": "1234",
         "rol": "Encargado",
-        "sucursal": "Casa Central"
+        "sucursal": "Casa Central",
+        "nombre": "Encargado Casa Central"
     },
     "vendedor": {
         "password": "1234",
         "rol": "Vendedor",
-        "sucursal": "Casa Central"
-    }
+        "sucursal": "Casa Central",
+        "nombre": "Vendedor Casa Central"
+    },
+    "norte": {
+        "password": "1234",
+        "rol": "Vendedor",
+        "sucursal": "Sucursal Norte",
+        "nombre": "Vendedor Norte"
+    },
+    "sur": {
+        "password": "1234",
+        "rol": "Vendedor",
+        "sucursal": "Sucursal Sur",
+        "nombre": "Vendedor Sur"
+    },
 }
 
+
+# =========================
+# FUNCIONES
+# =========================
 
 def cargar_logo_base64(path):
     if os.path.exists(path):
@@ -76,7 +103,7 @@ def cargar_logo_base64(path):
 
 def crear_archivos_iniciales():
     if not os.path.exists(STOCK_FILE):
-        df = pd.DataFrame([
+        stock = pd.DataFrame([
             {
                 "codigo": "DOG001",
                 "producto": "Royal Canin Mini Adult 3kg",
@@ -120,20 +147,19 @@ def crear_archivos_iniciales():
                 "fecha_vencimiento": ""
             }
         ])
-        df.to_csv(STOCK_FILE, index=False)
+        stock.to_csv(STOCK_FILE, index=False)
 
     if not os.path.exists(VENTAS_FILE):
         pd.DataFrame(columns=[
-            "fecha", "sucursal", "codigo", "producto", "categoria",
-            "cantidad", "precio_unitario", "descuento", "total",
-            "costo_total", "ganancia", "medio_pago", "vendedor",
-            "cliente", "comprobante"
+            "fecha", "sucursal", "codigo", "producto", "categoria", "cantidad",
+            "precio_unitario", "descuento", "total", "costo_total", "ganancia",
+            "medio_pago", "vendedor", "cliente", "comprobante"
         ]).to_csv(VENTAS_FILE, index=False)
 
     if not os.path.exists(COMPRAS_FILE):
         pd.DataFrame(columns=[
-            "fecha", "proveedor", "codigo", "producto", "categoria",
-            "sucursal", "cantidad", "precio_compra_unitario", "costo_total"
+            "fecha", "proveedor", "codigo", "producto", "categoria", "sucursal",
+            "cantidad", "precio_compra_unitario", "costo_total"
         ]).to_csv(COMPRAS_FILE, index=False)
 
     if not os.path.exists(CLIENTES_FILE):
@@ -143,9 +169,15 @@ def crear_archivos_iniciales():
 
     if not os.path.exists(PERDIDAS_FILE):
         pd.DataFrame(columns=[
-            "fecha", "sucursal", "codigo", "producto", "motivo",
-            "cantidad", "costo_unitario", "perdida_total", "observaciones"
+            "fecha", "sucursal", "codigo", "producto", "motivo", "cantidad",
+            "costo_unitario", "perdida_total", "observaciones"
         ]).to_csv(PERDIDAS_FILE, index=False)
+
+    if not os.path.exists(CHAT_FILE):
+        pd.DataFrame(columns=[
+            "fecha", "tipo_chat", "canal", "de_usuario", "de_nombre",
+            "para_usuario", "mensaje", "archivo_nombre", "archivo_ruta", "archivo_tipo"
+        ]).to_csv(CHAT_FILE, index=False)
 
 
 def cargar_csv(path):
@@ -189,6 +221,41 @@ def metric_card(titulo, valor, icono, detalle=""):
     )
 
 
+def guardar_adjunto(uploaded_file, usuario):
+    if uploaded_file is None:
+        return "", "", ""
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    nombre_seguro = uploaded_file.name.replace(" ", "_")
+    nombre_final = f"{timestamp}_{usuario}_{nombre_seguro}"
+    ruta = os.path.join(CHAT_DIR, nombre_final)
+
+    with open(ruta, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+
+    return uploaded_file.name, ruta, uploaded_file.type
+
+
+def mostrar_archivo_chat(nombre, ruta, tipo):
+    if not ruta or not os.path.exists(ruta):
+        return
+
+    if str(tipo).startswith("image"):
+        st.image(ruta, caption=nombre, width=280)
+    else:
+        with open(ruta, "rb") as f:
+            st.download_button(
+                label=f"📎 Descargar {nombre}",
+                data=f,
+                file_name=nombre,
+                mime=tipo if tipo else "application/octet-stream"
+            )
+
+
+# =========================
+# ESTILOS
+# =========================
+
 logo_b64 = cargar_logo_base64(LOGO_FILE)
 
 st.markdown(
@@ -198,8 +265,18 @@ st.markdown(
         background: #f8fafc;
     }
 
+    header[data-testid="stHeader"] {
+        background: transparent;
+    }
+
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #ff7a00 0%, #ff8c1a 45%, #ffffff 100%);
+        background: linear-gradient(
+            180deg,
+            #ff7a00 0%,
+            #ff8f1f 38%,
+            #ff9f1c 70%,
+            #ffffff 100%
+        );
         border-right: 1px solid #ffd3a3;
     }
 
@@ -209,48 +286,59 @@ st.markdown(
 
     .sidebar-logo {
         text-align: center;
-        padding: 10px 12px 18px 12px;
+        padding: 8px 8px 18px 8px;
     }
 
     .sidebar-logo img {
-        width: 155px;
-        border-radius: 14px;
+        width: 185px;
+        max-width: 95%;
+        border-radius: 10px;
         margin-bottom: 12px;
-        border: 4px solid white;
-        box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+        border: 3px solid white;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.28);
     }
 
     .sidebar-subtitle {
         color: white;
         font-size: 12px;
-        font-weight: 800;
-        margin-top: 8px;
+        font-weight: 900;
+        margin-top: 10px;
+        letter-spacing: 0.4px;
     }
 
     .sidebar-divider {
         margin: 18px auto;
-        width: 75%;
+        width: 82%;
         height: 1px;
-        background: rgba(255,255,255,0.85);
+        background: rgba(255,255,255,0.7);
     }
 
     .stRadio > div {
-        gap: 8px;
+        gap: 10px;
     }
 
     .stRadio label {
-        background: rgba(255,255,255,0.92);
-        border: 1px solid rgba(255,255,255,0.9);
-        border-radius: 12px;
-        padding: 9px 12px;
-        font-weight: 700;
+        background: linear-gradient(135deg, #ffffff 0%, #fff5eb 100%);
+        border: 1px solid #ffd2a8;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-weight: 800;
         color: #1f2937;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        width: 100%;
+        transition: 0.2s;
     }
 
     .stRadio label:hover {
-        background: #fff4e8;
-        border-color: #ff7a00;
+        background: linear-gradient(135deg, #ff7a00 0%, #ff9f1c 100%);
+        color: white;
+        border: 1px solid #ff7a00;
+        transform: translateY(-1px);
+    }
+
+    .stRadio label p {
+        font-size: 14px !important;
+        font-weight: 800 !important;
     }
 
     .main-header {
@@ -312,22 +400,6 @@ st.markdown(
         font-weight: 700;
     }
 
-    .panel {
-        background: white;
-        border: 1px solid #edf0f4;
-        border-radius: 20px;
-        padding: 22px;
-        box-shadow: 0 8px 25px rgba(15,23,42,0.06);
-        margin-bottom: 18px;
-    }
-
-    .panel-title {
-        font-size: 20px;
-        font-weight: 900;
-        color: #1f2937;
-        margin-bottom: 14px;
-    }
-
     .welcome-card {
         background: linear-gradient(135deg, #ff7a00 0%, #ff9f1c 100%);
         color: white;
@@ -349,13 +421,48 @@ st.markdown(
         opacity: 0.95;
     }
 
+    .login-logo-box {
+        text-align: center;
+        margin-top: 30px;
+        margin-bottom: 20px;
+    }
+
+    .login-logo-box img {
+        width: 260px;
+        max-width: 95%;
+        border-radius: 12px;
+    }
+
+    .chat-message {
+        background: white;
+        border: 1px solid #edf0f4;
+        border-radius: 18px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 15px rgba(15,23,42,0.04);
+    }
+
+    .chat-head {
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 800;
+        margin-bottom: 7px;
+    }
+
+    .chat-text {
+        font-size: 15px;
+        color: #111827;
+        font-weight: 500;
+    }
+
     .stButton button {
         background: linear-gradient(135deg, #ff7a00 0%, #ff9f1c 100%);
         color: white;
         border: none;
-        border-radius: 12px;
-        padding: 0.65rem 1rem;
-        font-weight: 800;
+        border-radius: 10px;
+        padding: 0.7rem 1rem;
+        font-weight: 900;
+        box-shadow: 0 6px 16px rgba(255,122,0,0.28);
     }
 
     .stButton button:hover {
@@ -373,12 +480,16 @@ st.markdown(
         color: #3f3f46;
         margin-top: 35px;
         text-align: center;
-        font-weight: 700;
+        font-weight: 800;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
+
+# =========================
+# CARGA DE DATOS
+# =========================
 
 crear_archivos_iniciales()
 
@@ -387,6 +498,11 @@ ventas_df = cargar_csv(VENTAS_FILE)
 compras_df = cargar_csv(COMPRAS_FILE)
 clientes_df = cargar_csv(CLIENTES_FILE)
 perdidas_df = cargar_csv(PERDIDAS_FILE)
+chat_df = cargar_csv(CHAT_FILE)
+
+# =========================
+# LOGIN
+# =========================
 
 if "logueado" not in st.session_state:
     st.session_state.logueado = False
@@ -395,23 +511,21 @@ if "usuario" not in st.session_state:
     st.session_state.usuario = None
 
 if not st.session_state.logueado:
-    col1, col2, col3 = st.columns([1, 1.2, 1])
+    col1, col2, col3 = st.columns([1, 1.05, 1])
 
     with col2:
-        st.markdown(
-            """
-            <div class="welcome-card">
-                <div class="welcome-title">🐾 PetShop Manager Pro</div>
-                <div class="welcome-subtitle">Sistema integral para gestión de sucursales, ventas, stock y rentabilidad.</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
         if logo_b64:
-            st.image(LOGO_FILE, width=230)
+            st.markdown(
+                f"""
+                <div class="login-logo-box">
+                    <img src="data:image/png;base64,{logo_b64}">
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-        st.subheader("🔐 Iniciar sesión")
+        st.title("🔐 Iniciar sesión")
+        st.caption("Ingresá al sistema de gestión del pet shop.")
 
         usuario = st.text_input("Usuario")
         password = st.text_input("Contraseña", type="password")
@@ -431,6 +545,11 @@ if not st.session_state.logueado:
 usuario_actual = st.session_state.usuario
 rol_actual = USUARIOS[usuario_actual]["rol"]
 sucursal_usuario = USUARIOS[usuario_actual]["sucursal"]
+nombre_actual = USUARIOS[usuario_actual]["nombre"]
+
+# =========================
+# SIDEBAR
+# =========================
 
 with st.sidebar:
     if logo_b64:
@@ -457,9 +576,9 @@ with st.sidebar:
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
     if rol_actual == "Vendedor":
-        opciones = ["Inicio", "Ventas", "Clientes"]
+        opciones = ["Inicio", "Ventas", "Clientes", "Chat interno"]
     elif rol_actual == "Encargado":
-        opciones = ["Inicio", "Ventas", "Stock", "Clientes", "Compras", "Reportes"]
+        opciones = ["Inicio", "Ventas", "Stock", "Clientes", "Compras", "Reportes", "Chat interno"]
     else:
         opciones = [
             "Inicio",
@@ -470,6 +589,7 @@ with st.sidebar:
             "Compras",
             "Ganancias y pérdidas",
             "Reportes",
+            "Chat interno",
             "Importar Excel",
             "Exportar datos",
             "Configuración"
@@ -481,7 +601,7 @@ with st.sidebar:
 
     st.markdown(
         f"""
-        <div style="background:white;border-radius:14px;padding:14px;color:#1f2937;font-weight:800;">
+        <div style="background:white;border-radius:10px;padding:13px;color:#1f2937;font-weight:800;">
             🧾 Usuario: {usuario_actual}<br>
             🔐 Rol: {rol_actual}<br>
             🏪 Sucursal: {sucursal_usuario}
@@ -492,7 +612,7 @@ with st.sidebar:
 
     st.markdown(
         """
-        <div style="background:white;border-radius:14px;padding:14px;color:#1f2937;font-weight:800;margin-top:12px;">
+        <div style="background:white;border-radius:10px;padding:13px;color:#1f2937;font-weight:800;margin-top:12px;">
             📅 Ciclo comercial<br>
             Mayo 2026
         </div>
@@ -515,6 +635,10 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
+# =========================
+# HEADER
+# =========================
+
 st.markdown(
     f"""
     <div class="main-header">
@@ -525,6 +649,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# =========================
+# FILTROS POR ROL
+# =========================
 
 def filtrar_por_rol(df):
     if df.empty:
@@ -541,6 +668,9 @@ stock_visible = filtrar_por_rol(stock_df)
 compras_visibles = filtrar_por_rol(compras_df)
 perdidas_visibles = filtrar_por_rol(perdidas_df)
 
+# =========================
+# INICIO
+# =========================
 
 if menu == "Inicio":
     st.markdown(
@@ -548,7 +678,7 @@ if menu == "Inicio":
         <div class="welcome-card">
             <div class="welcome-title">Panel de control empresarial</div>
             <div class="welcome-subtitle">
-                Controlá ventas, stock, rentabilidad, pérdidas y rendimiento de sucursales desde un solo lugar.
+                Controlá ventas, stock, rentabilidad, pérdidas, comunicación interna y rendimiento de sucursales.
             </div>
         </div>
         """,
@@ -596,62 +726,60 @@ if menu == "Inicio":
     with c7:
         metric_card("Pérdidas registradas", pesos(perdida_total), "⚠️", "Control operativo")
     with c8:
-        metric_card("Resultado estimado", pesos(ganancia_mes - perdida_total), "🏆", "Ganancia menos pérdidas")
+        metric_card("Mensajes internos", len(chat_df), "💬", "Comunicación interna")
 
     st.divider()
 
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.markdown('<div class="panel"><div class="panel-title">📈 Evolución de ventas</div>', unsafe_allow_html=True)
+        st.subheader("📈 Evolución de ventas")
         if not ventas_visibles.empty:
             ventas_visibles["dia"] = ventas_visibles["fecha"].dt.date
             ventas_dia = ventas_visibles.groupby("dia")["total"].sum().reset_index()
             st.line_chart(ventas_dia.set_index("dia"))
         else:
             st.info("Todavía no hay ventas cargadas.")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
-        st.markdown('<div class="panel"><div class="panel-title">🏪 Ranking de sucursales</div>', unsafe_allow_html=True)
+        st.subheader("🏪 Ranking de sucursales")
         if not ventas_df.empty:
             ranking = ventas_df.groupby("sucursal")["total"].sum().reset_index()
             ranking = ranking.sort_values("total", ascending=False)
             st.dataframe(ranking, use_container_width=True, hide_index=True)
         else:
             st.info("Sin datos de ventas.")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     col3, col4, col5 = st.columns(3)
 
     with col3:
-        st.markdown('<div class="panel"><div class="panel-title">🔥 Productos más vendidos</div>', unsafe_allow_html=True)
+        st.subheader("🔥 Productos más vendidos")
         if not ventas_visibles.empty:
             top = ventas_visibles.groupby("producto")["cantidad"].sum().reset_index()
             top = top.sort_values("cantidad", ascending=False).head(8)
             st.dataframe(top, use_container_width=True, hide_index=True)
         else:
             st.info("Sin ventas.")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with col4:
-        st.markdown('<div class="panel"><div class="panel-title">⚠️ Bajo stock</div>', unsafe_allow_html=True)
+        st.subheader("⚠️ Bajo stock")
         bajo = stock_visible[stock_visible["stock"] <= stock_visible["stock_minimo"]] if not stock_visible.empty else pd.DataFrame()
         if not bajo.empty:
             st.dataframe(bajo[["producto", "sucursal", "stock", "stock_minimo"]], use_container_width=True, hide_index=True)
         else:
             st.success("Stock en buen estado.")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with col5:
-        st.markdown('<div class="panel"><div class="panel-title">💳 Medios de pago</div>', unsafe_allow_html=True)
+        st.subheader("💳 Medios de pago")
         if not ventas_visibles.empty:
             medios = ventas_visibles.groupby("medio_pago")["total"].sum().reset_index()
             st.dataframe(medios, use_container_width=True, hide_index=True)
         else:
             st.info("Sin pagos registrados.")
-        st.markdown('</div>', unsafe_allow_html=True)
 
+# =========================
+# VENTAS
+# =========================
 
 elif menu == "Ventas":
     st.header("🛒 Gestión de ventas")
@@ -682,7 +810,12 @@ elif menu == "Ventas":
 
             if producto_nombre:
                 row = stock_sucursal[stock_sucursal["producto"] == producto_nombre].iloc[0]
-                precio_unitario = c4.number_input("Precio unitario", value=float(row["precio_venta"]), min_value=0.0, step=100.0)
+                precio_unitario = c4.number_input(
+                    "Precio unitario",
+                    value=float(row["precio_venta"]),
+                    min_value=0.0,
+                    step=100.0
+                )
                 precio_compra = float(row["precio_compra"])
                 stock_actual = int(row["stock"])
             else:
@@ -704,7 +837,10 @@ elif menu == "Ventas":
             ganancia = total - costo_total
             margen = (ganancia / total * 100) if total > 0 else 0
 
-            st.info(f"Total: {pesos(total)} | Ganancia: {pesos(ganancia)} | Margen: {margen:.2f}% | Stock actual: {stock_actual}")
+            st.info(
+                f"Total: {pesos(total)} | Ganancia: {pesos(ganancia)} | "
+                f"Margen: {margen:.2f}% | Stock actual: {stock_actual}"
+            )
 
             guardar = st.form_submit_button("Guardar venta")
 
@@ -749,6 +885,9 @@ elif menu == "Ventas":
     st.subheader("Historial de ventas")
     st.dataframe(ventas_visibles, use_container_width=True, hide_index=True)
 
+# =========================
+# STOCK
+# =========================
 
 elif menu == "Stock":
     st.header("📦 Gestión de stock")
@@ -829,6 +968,9 @@ elif menu == "Stock":
             st.success("Producto guardado.")
             st.rerun()
 
+# =========================
+# SUCURSALES
+# =========================
 
 elif menu == "Sucursales":
     st.header("🏪 Sucursales")
@@ -860,6 +1002,9 @@ elif menu == "Sucursales":
     st.subheader("Stock")
     st.dataframe(s, use_container_width=True, hide_index=True)
 
+# =========================
+# CLIENTES
+# =========================
 
 elif menu == "Clientes":
     st.header("👥 Clientes")
@@ -893,6 +1038,9 @@ elif menu == "Clientes":
 
     st.dataframe(clientes_df, use_container_width=True, hide_index=True)
 
+# =========================
+# COMPRAS
+# =========================
 
 elif menu == "Compras":
     st.header("🚚 Compras a proveedores")
@@ -972,6 +1120,9 @@ elif menu == "Compras":
 
     st.dataframe(compras_visibles, use_container_width=True, hide_index=True)
 
+# =========================
+# GANANCIAS Y PÉRDIDAS
+# =========================
 
 elif menu == "Ganancias y pérdidas":
     st.header("💰 Ganancias y pérdidas")
@@ -1039,6 +1190,9 @@ elif menu == "Ganancias y pérdidas":
 
     st.dataframe(perdidas_df, use_container_width=True, hide_index=True)
 
+# =========================
+# REPORTES
+# =========================
 
 elif menu == "Reportes":
     st.header("📊 Reportes avanzados")
@@ -1071,6 +1225,133 @@ elif menu == "Reportes":
         medios = ventas_visibles.groupby("medio_pago")["total"].sum().reset_index()
         st.dataframe(medios, use_container_width=True, hide_index=True)
 
+# =========================
+# CHAT INTERNO
+# =========================
+
+elif menu == "Chat interno":
+    st.header("💬 Chat interno")
+
+    st.info(
+        "Chat interno para comunicación entre sucursales, dueño, encargados y vendedores. "
+        "Permite adjuntar imágenes, facturas, PDF, Excel y documentos."
+    )
+
+    chat_df = cargar_csv(CHAT_FILE)
+
+    tipo_chat = st.radio(
+        "Seleccionar tipo de chat",
+        ["Chat general", "Chat por sucursal", "Chat privado"],
+        horizontal=True
+    )
+
+    canal = "general"
+    para_usuario = ""
+
+    if tipo_chat == "Chat general":
+        st.subheader("🌐 Chat general de la empresa")
+        canal = "general"
+
+    elif tipo_chat == "Chat por sucursal":
+        if rol_actual == "Administrador":
+            canal = st.selectbox("Sucursal", SUCURSALES)
+        else:
+            canal = sucursal_usuario
+            st.text_input("Sucursal", value=canal, disabled=True)
+
+        st.subheader(f"🏪 Chat de {canal}")
+
+    elif tipo_chat == "Chat privado":
+        usuarios_disponibles = [u for u in USUARIOS.keys() if u != usuario_actual]
+
+        if rol_actual != "Administrador":
+            usuarios_disponibles = ["admin"]
+
+        para_usuario = st.selectbox("Hablar con", usuarios_disponibles)
+
+        participantes = sorted([usuario_actual, para_usuario])
+        canal = f"privado_{participantes[0]}_{participantes[1]}"
+
+        st.subheader(f"🔒 Chat privado con {para_usuario}")
+
+    st.divider()
+
+    with st.form("form_chat", clear_on_submit=True):
+        mensaje = st.text_area("Escribir mensaje", height=90)
+        archivo = st.file_uploader(
+            "Adjuntar archivo",
+            type=["png", "jpg", "jpeg", "pdf", "xlsx", "xls", "docx", "txt"]
+        )
+
+        enviar = st.form_submit_button("Enviar mensaje")
+
+        if enviar:
+            if not mensaje and archivo is None:
+                st.warning("Escribí un mensaje o adjuntá un archivo.")
+            else:
+                archivo_nombre, archivo_ruta, archivo_tipo = guardar_adjunto(archivo, usuario_actual)
+
+                nuevo_mensaje = {
+                    "fecha": str(datetime.now()),
+                    "tipo_chat": tipo_chat,
+                    "canal": canal,
+                    "de_usuario": usuario_actual,
+                    "de_nombre": nombre_actual,
+                    "para_usuario": para_usuario,
+                    "mensaje": mensaje,
+                    "archivo_nombre": archivo_nombre,
+                    "archivo_ruta": archivo_ruta,
+                    "archivo_tipo": archivo_tipo
+                }
+
+                chat_df = pd.concat([chat_df, pd.DataFrame([nuevo_mensaje])], ignore_index=True)
+                guardar_csv(chat_df, CHAT_FILE)
+                st.success("Mensaje enviado.")
+                st.rerun()
+
+    st.divider()
+    st.subheader("📨 Mensajes")
+
+    if chat_df.empty:
+        st.info("Todavía no hay mensajes.")
+    else:
+        mensajes = chat_df[chat_df["canal"] == canal].copy()
+
+        if not mensajes.empty:
+            mensajes["fecha"] = pd.to_datetime(mensajes["fecha"], errors="coerce")
+            mensajes = mensajes.sort_values("fecha", ascending=False)
+
+            for _, msg in mensajes.iterrows():
+                fecha_txt = msg["fecha"].strftime("%d/%m/%Y %H:%M") if pd.notnull(msg["fecha"]) else ""
+                texto = msg["mensaje"] if pd.notnull(msg["mensaje"]) else ""
+
+                st.markdown(
+                    f"""
+                    <div class="chat-message">
+                        <div class="chat-head">👤 {msg['de_nombre']} · {msg['de_usuario']} · {fecha_txt}</div>
+                        <div class="chat-text">{texto}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                if pd.notnull(msg.get("archivo_ruta", "")) and str(msg.get("archivo_ruta", "")) != "":
+                    mostrar_archivo_chat(
+                        msg.get("archivo_nombre", ""),
+                        msg.get("archivo_ruta", ""),
+                        msg.get("archivo_tipo", "")
+                    )
+        else:
+            st.info("No hay mensajes en este chat todavía.")
+
+    if rol_actual == "Administrador":
+        st.divider()
+        st.subheader("📋 Auditoría de mensajes")
+        st.dataframe(chat_df, use_container_width=True, hide_index=True)
+
+# =========================
+# IMPORTAR EXCEL
+# =========================
 
 elif menu == "Importar Excel":
     st.header("📥 Importar Excel")
@@ -1095,6 +1376,9 @@ elif menu == "Importar Excel":
             st.success("Datos importados.")
             st.rerun()
 
+# =========================
+# EXPORTAR
+# =========================
 
 elif menu == "Exportar datos":
     st.header("📤 Exportar datos")
@@ -1104,7 +1388,8 @@ elif menu == "Exportar datos":
         "Stock": stock_df,
         "Compras": compras_df,
         "Clientes": clientes_df,
-        "Perdidas": perdidas_df
+        "Perdidas": perdidas_df,
+        "Chat": chat_df
     })
 
     st.download_button(
@@ -1114,6 +1399,9 @@ elif menu == "Exportar datos":
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+# =========================
+# CONFIGURACIÓN
+# =========================
 
 elif menu == "Configuración":
     st.header("⚙️ Configuración del sistema")
@@ -1123,9 +1411,14 @@ elif menu == "Configuración":
     usuarios_demo = pd.DataFrame([
         {"Usuario": "admin", "Contraseña": "1234", "Rol": "Administrador", "Acceso": "Todo el sistema"},
         {"Usuario": "encargado", "Contraseña": "1234", "Rol": "Encargado", "Acceso": "Sucursal asignada"},
-        {"Usuario": "vendedor", "Contraseña": "1234", "Rol": "Vendedor", "Acceso": "Ventas y clientes"},
+        {"Usuario": "vendedor", "Contraseña": "1234", "Rol": "Vendedor", "Acceso": "Ventas, clientes y chat"},
+        {"Usuario": "norte", "Contraseña": "1234", "Rol": "Vendedor", "Acceso": "Sucursal Norte"},
+        {"Usuario": "sur", "Contraseña": "1234", "Rol": "Vendedor", "Acceso": "Sucursal Sur"},
     ])
 
     st.dataframe(usuarios_demo, use_container_width=True, hide_index=True)
 
-    st.warning("Esta versión tiene login demo. El siguiente paso profesional es conectarlo a Supabase para usuarios reales y base de datos online.")
+    st.warning(
+        "Esta versión guarda datos, chat y adjuntos en archivos locales. "
+        "Para uso real entre varias sucursales online, el próximo paso es Supabase/Firebase."
+    )
