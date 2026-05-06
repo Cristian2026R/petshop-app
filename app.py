@@ -1,23 +1,29 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, date
 import os
+from datetime import datetime, date
 from io import BytesIO
+import base64
 
 st.set_page_config(
-    page_title="Pet Shop Manager",
+    page_title="PetShop Manager Pro",
     page_icon="🐾",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 DATA_DIR = "data_petshop"
+os.makedirs(DATA_DIR, exist_ok=True)
+
 VENTAS_FILE = f"{DATA_DIR}/ventas.csv"
 STOCK_FILE = f"{DATA_DIR}/stock.csv"
 COMPRAS_FILE = f"{DATA_DIR}/compras.csv"
 CLIENTES_FILE = f"{DATA_DIR}/clientes.csv"
 PERDIDAS_FILE = f"{DATA_DIR}/perdidas.csv"
 
-SUCURSALES = ["Sucursal Centro", "Sucursal Norte", "Sucursal Sur"]
+LOGO_FILE = "logo.png"
+
+SUCURSALES = ["Casa Central", "Sucursal Norte", "Sucursal Sur"]
 
 CATEGORIAS = [
     "Alimento para perros",
@@ -40,123 +46,106 @@ CATEGORIAS = [
     "Otros"
 ]
 
-MEDIOS_PAGO = [
-    "Efectivo",
-    "Débito",
-    "Crédito",
-    "Transferencia",
-    "Mercado Pago"
-]
+MEDIOS_PAGO = ["Efectivo", "Débito", "Crédito", "Transferencia", "Mercado Pago"]
 
-os.makedirs(DATA_DIR, exist_ok=True)
+USUARIOS = {
+    "admin": {
+        "password": "1234",
+        "rol": "Administrador",
+        "sucursal": "Todas"
+    },
+    "encargado": {
+        "password": "1234",
+        "rol": "Encargado",
+        "sucursal": "Casa Central"
+    },
+    "vendedor": {
+        "password": "1234",
+        "rol": "Vendedor",
+        "sucursal": "Casa Central"
+    }
+}
+
+
+def cargar_logo_base64(path):
+    if os.path.exists(path):
+        with open(path, "rb") as img:
+            return base64.b64encode(img.read()).decode()
+    return None
 
 
 def crear_archivos_iniciales():
     if not os.path.exists(STOCK_FILE):
-        stock = pd.DataFrame([
+        df = pd.DataFrame([
             {
                 "codigo": "DOG001",
-                "producto": "Alimento Perro Adulto 15kg",
+                "producto": "Royal Canin Mini Adult 3kg",
                 "categoria": "Alimento para perros",
-                "marca": "DogPlus",
+                "marca": "Royal Canin",
                 "proveedor": "Proveedor A",
-                "sucursal": "Sucursal Centro",
-                "precio_compra": 18000,
-                "precio_venta": 26000,
-                "stock": 25,
+                "sucursal": "Casa Central",
+                "precio_compra": 15000,
+                "precio_venta": 23000,
+                "stock": 12,
                 "stock_minimo": 5,
                 "fecha_ingreso": str(date.today()),
                 "fecha_vencimiento": ""
             },
             {
                 "codigo": "CAT001",
-                "producto": "Alimento Gato Adulto 10kg",
-                "categoria": "Alimento para gatos",
-                "marca": "CatPremium",
+                "producto": "Piedras Sanitarias 4kg",
+                "categoria": "Piedras sanitarias",
+                "marca": "MichiClean",
                 "proveedor": "Proveedor B",
                 "sucursal": "Sucursal Norte",
-                "precio_compra": 14000,
-                "precio_venta": 21000,
-                "stock": 18,
-                "stock_minimo": 4,
+                "precio_compra": 2500,
+                "precio_venta": 4300,
+                "stock": 25,
+                "stock_minimo": 8,
                 "fecha_ingreso": str(date.today()),
                 "fecha_vencimiento": ""
             },
             {
-                "codigo": "ARE001",
-                "producto": "Arena Sanitaria 4kg",
-                "categoria": "Arena para gatos",
-                "marca": "MichiClean",
+                "codigo": "ACC001",
+                "producto": "Correa Retráctil Talla M",
+                "categoria": "Correas",
+                "marca": "PetFlex",
                 "proveedor": "Proveedor C",
                 "sucursal": "Sucursal Sur",
-                "precio_compra": 2500,
-                "precio_venta": 4200,
-                "stock": 40,
-                "stock_minimo": 10,
+                "precio_compra": 6000,
+                "precio_venta": 11500,
+                "stock": 4,
+                "stock_minimo": 5,
                 "fecha_ingreso": str(date.today()),
                 "fecha_vencimiento": ""
             }
         ])
-        stock.to_csv(STOCK_FILE, index=False)
+        df.to_csv(STOCK_FILE, index=False)
 
     if not os.path.exists(VENTAS_FILE):
-        ventas = pd.DataFrame(columns=[
-            "fecha",
-            "sucursal",
-            "codigo",
-            "producto",
-            "categoria",
-            "cantidad",
-            "precio_unitario",
-            "descuento",
-            "total",
-            "costo_total",
-            "ganancia",
-            "medio_pago",
-            "vendedor",
-            "cliente",
-            "comprobante"
-        ])
-        ventas.to_csv(VENTAS_FILE, index=False)
+        pd.DataFrame(columns=[
+            "fecha", "sucursal", "codigo", "producto", "categoria",
+            "cantidad", "precio_unitario", "descuento", "total",
+            "costo_total", "ganancia", "medio_pago", "vendedor",
+            "cliente", "comprobante"
+        ]).to_csv(VENTAS_FILE, index=False)
 
     if not os.path.exists(COMPRAS_FILE):
-        compras = pd.DataFrame(columns=[
-            "fecha",
-            "proveedor",
-            "codigo",
-            "producto",
-            "categoria",
-            "sucursal",
-            "cantidad",
-            "precio_compra_unitario",
-            "costo_total"
-        ])
-        compras.to_csv(COMPRAS_FILE, index=False)
+        pd.DataFrame(columns=[
+            "fecha", "proveedor", "codigo", "producto", "categoria",
+            "sucursal", "cantidad", "precio_compra_unitario", "costo_total"
+        ]).to_csv(COMPRAS_FILE, index=False)
 
     if not os.path.exists(CLIENTES_FILE):
-        clientes = pd.DataFrame(columns=[
-            "nombre",
-            "telefono",
-            "mascota",
-            "tipo_mascota",
-            "email",
-            "observaciones"
-        ])
-        clientes.to_csv(CLIENTES_FILE, index=False)
+        pd.DataFrame(columns=[
+            "nombre", "telefono", "mascota", "tipo_mascota", "email", "observaciones"
+        ]).to_csv(CLIENTES_FILE, index=False)
 
     if not os.path.exists(PERDIDAS_FILE):
-        perdidas = pd.DataFrame(columns=[
-            "fecha",
-            "sucursal",
-            "codigo",
-            "producto",
-            "motivo",
-            "cantidad",
-            "costo_unitario",
-            "perdida_total",
-            "observaciones"
-        ])
-        perdidas.to_csv(PERDIDAS_FILE, index=False)
+        pd.DataFrame(columns=[
+            "fecha", "sucursal", "codigo", "producto", "motivo",
+            "cantidad", "costo_unitario", "perdida_total", "observaciones"
+        ]).to_csv(PERDIDAS_FILE, index=False)
 
 
 def cargar_csv(path):
@@ -169,11 +158,11 @@ def guardar_csv(df, path):
     df.to_csv(path, index=False)
 
 
-def formato_pesos(valor):
+def pesos(valor):
     try:
-        return f"${valor:,.0f}".replace(",", ".")
+        return f"$ {float(valor):,.0f}".replace(",", ".")
     except:
-        return "$0"
+        return "$ 0"
 
 
 def exportar_excel(dfs):
@@ -184,6 +173,213 @@ def exportar_excel(dfs):
     return output.getvalue()
 
 
+def metric_card(titulo, valor, icono, detalle=""):
+    st.markdown(
+        f"""
+        <div class="metric-card">
+            <div class="metric-top">
+                <span>{titulo}</span>
+                <span class="metric-icon">{icono}</span>
+            </div>
+            <div class="metric-value">{valor}</div>
+            <div class="metric-detail">{detalle}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+logo_b64 = cargar_logo_base64(LOGO_FILE)
+
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background: #f8fafc;
+    }
+
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #ff7a00 0%, #ff8c1a 45%, #ffffff 100%);
+        border-right: 1px solid #ffd3a3;
+    }
+
+    section[data-testid="stSidebar"] > div {
+        padding-top: 1rem;
+    }
+
+    .sidebar-logo {
+        text-align: center;
+        padding: 10px 12px 18px 12px;
+    }
+
+    .sidebar-logo img {
+        width: 155px;
+        border-radius: 14px;
+        margin-bottom: 12px;
+        border: 4px solid white;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+    }
+
+    .sidebar-subtitle {
+        color: white;
+        font-size: 12px;
+        font-weight: 800;
+        margin-top: 8px;
+    }
+
+    .sidebar-divider {
+        margin: 18px auto;
+        width: 75%;
+        height: 1px;
+        background: rgba(255,255,255,0.85);
+    }
+
+    .stRadio > div {
+        gap: 8px;
+    }
+
+    .stRadio label {
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(255,255,255,0.9);
+        border-radius: 12px;
+        padding: 9px 12px;
+        font-weight: 700;
+        color: #1f2937;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .stRadio label:hover {
+        background: #fff4e8;
+        border-color: #ff7a00;
+    }
+
+    .main-header {
+        background: white;
+        border: 1px solid #edf0f4;
+        border-radius: 22px;
+        padding: 24px 28px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(15,23,42,0.05);
+    }
+
+    .main-title {
+        font-size: 34px;
+        font-weight: 900;
+        color: #ff6b00;
+        margin-bottom: 4px;
+    }
+
+    .main-subtitle {
+        font-size: 15px;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .metric-card {
+        background: white;
+        border: 1px solid #edf0f4;
+        border-radius: 20px;
+        padding: 22px;
+        box-shadow: 0 8px 25px rgba(15,23,42,0.06);
+        min-height: 145px;
+    }
+
+    .metric-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #1f2937;
+        font-size: 15px;
+        font-weight: 800;
+    }
+
+    .metric-icon {
+        color: #ff7a00;
+        font-size: 28px;
+    }
+
+    .metric-value {
+        font-size: 28px;
+        font-weight: 900;
+        color: #ff6b00;
+        margin-top: 24px;
+    }
+
+    .metric-detail {
+        font-size: 13px;
+        color: #16a34a;
+        margin-top: 8px;
+        font-weight: 700;
+    }
+
+    .panel {
+        background: white;
+        border: 1px solid #edf0f4;
+        border-radius: 20px;
+        padding: 22px;
+        box-shadow: 0 8px 25px rgba(15,23,42,0.06);
+        margin-bottom: 18px;
+    }
+
+    .panel-title {
+        font-size: 20px;
+        font-weight: 900;
+        color: #1f2937;
+        margin-bottom: 14px;
+    }
+
+    .welcome-card {
+        background: linear-gradient(135deg, #ff7a00 0%, #ff9f1c 100%);
+        color: white;
+        border-radius: 24px;
+        padding: 34px;
+        box-shadow: 0 12px 35px rgba(255,122,0,0.25);
+        margin-bottom: 22px;
+    }
+
+    .welcome-title {
+        font-size: 38px;
+        font-weight: 900;
+        margin-bottom: 8px;
+    }
+
+    .welcome-subtitle {
+        font-size: 17px;
+        font-weight: 600;
+        opacity: 0.95;
+    }
+
+    .stButton button {
+        background: linear-gradient(135deg, #ff7a00 0%, #ff9f1c 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 0.65rem 1rem;
+        font-weight: 800;
+    }
+
+    .stButton button:hover {
+        color: white;
+        background: linear-gradient(135deg, #e66700 0%, #ff7a00 100%);
+    }
+
+    div[data-testid="stDataFrame"] {
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .footer-sidebar {
+        font-size: 11px;
+        color: #3f3f46;
+        margin-top: 35px;
+        text-align: center;
+        font-weight: 700;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 crear_archivos_iniciales()
 
 stock_df = cargar_csv(STOCK_FILE)
@@ -192,208 +388,338 @@ compras_df = cargar_csv(COMPRAS_FILE)
 clientes_df = cargar_csv(CLIENTES_FILE)
 perdidas_df = cargar_csv(PERDIDAS_FILE)
 
-st.markdown("""
-<style>
-.main {
-    background-color: #f7fbfa;
-}
-.block-container {
-    padding-top: 1.5rem;
-}
-.metric-card {
-    background: white;
-    padding: 18px;
-    border-radius: 18px;
-    border: 1px solid #e6eeee;
-    box-shadow: 0px 4px 18px rgba(0,0,0,0.04);
-}
-h1, h2, h3 {
-    color: #164e42;
-}
-.stButton>button {
-    background-color: #20b486;
-    color: white;
-    border-radius: 10px;
-    border: none;
-    padding: 0.6rem 1rem;
-}
-.stButton>button:hover {
-    background-color: #14956d;
-    color: white;
-}
-</style>
-""", unsafe_allow_html=True)
+if "logueado" not in st.session_state:
+    st.session_state.logueado = False
 
-st.sidebar.title("🐾 Pet Shop Manager")
-st.sidebar.caption("Sistema profesional para 3 sucursales")
+if "usuario" not in st.session_state:
+    st.session_state.usuario = None
 
-menu = st.sidebar.radio(
-    "Menú principal",
-    [
-        "Dashboard",
-        "Ventas",
-        "Stock",
-        "Sucursales",
-        "Compras a proveedores",
-        "Clientes",
-        "Ganancias y pérdidas",
-        "Reportes",
-        "Importar Excel",
-        "Exportar datos"
-    ]
+if not st.session_state.logueado:
+    col1, col2, col3 = st.columns([1, 1.2, 1])
+
+    with col2:
+        st.markdown(
+            """
+            <div class="welcome-card">
+                <div class="welcome-title">🐾 PetShop Manager Pro</div>
+                <div class="welcome-subtitle">Sistema integral para gestión de sucursales, ventas, stock y rentabilidad.</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if logo_b64:
+            st.image(LOGO_FILE, width=230)
+
+        st.subheader("🔐 Iniciar sesión")
+
+        usuario = st.text_input("Usuario")
+        password = st.text_input("Contraseña", type="password")
+
+        st.info("Demo: admin / 1234")
+
+        if st.button("Ingresar al sistema"):
+            if usuario in USUARIOS and USUARIOS[usuario]["password"] == password:
+                st.session_state.logueado = True
+                st.session_state.usuario = usuario
+                st.rerun()
+            else:
+                st.error("Usuario o contraseña incorrectos.")
+
+    st.stop()
+
+usuario_actual = st.session_state.usuario
+rol_actual = USUARIOS[usuario_actual]["rol"]
+sucursal_usuario = USUARIOS[usuario_actual]["sucursal"]
+
+with st.sidebar:
+    if logo_b64:
+        st.markdown(
+            f"""
+            <div class="sidebar-logo">
+                <img src="data:image/png;base64,{logo_b64}">
+                <div class="sidebar-subtitle">Sistema de gestión integral</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            """
+            <div class="sidebar-logo">
+                <div style="font-size:22px;font-weight:900;color:white;">🐾 PetShop Manager Pro</div>
+                <div class="sidebar-subtitle">Sistema de gestión integral</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+
+    if rol_actual == "Vendedor":
+        opciones = ["Inicio", "Ventas", "Clientes"]
+    elif rol_actual == "Encargado":
+        opciones = ["Inicio", "Ventas", "Stock", "Clientes", "Compras", "Reportes"]
+    else:
+        opciones = [
+            "Inicio",
+            "Ventas",
+            "Stock",
+            "Sucursales",
+            "Clientes",
+            "Compras",
+            "Ganancias y pérdidas",
+            "Reportes",
+            "Importar Excel",
+            "Exportar datos",
+            "Configuración"
+        ]
+
+    menu = st.radio("Menú", opciones, label_visibility="collapsed")
+
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+
+    st.markdown(
+        f"""
+        <div style="background:white;border-radius:14px;padding:14px;color:#1f2937;font-weight:800;">
+            🧾 Usuario: {usuario_actual}<br>
+            🔐 Rol: {rol_actual}<br>
+            🏪 Sucursal: {sucursal_usuario}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div style="background:white;border-radius:14px;padding:14px;color:#1f2937;font-weight:800;margin-top:12px;">
+            📅 Ciclo comercial<br>
+            Mayo 2026
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if st.button("Cerrar sesión"):
+        st.session_state.logueado = False
+        st.session_state.usuario = None
+        st.rerun()
+
+    st.markdown(
+        """
+        <div class="footer-sidebar">
+            🐾 PetShop Manager Pro<br>
+            © 2026 La Casa del Mascotero
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+st.markdown(
+    f"""
+    <div class="main-header">
+        <div class="main-title">🐾 PetShop Manager Pro</div>
+        <div class="main-subtitle">Bienvenido, {rol_actual}. Sistema de gestión integral para pet shops con múltiples sucursales.</div>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
-st.title("🐾 Pet Shop Manager")
-st.caption("Control de ventas, stock, facturación, ganancias y sucursales")
+
+def filtrar_por_rol(df):
+    if df.empty:
+        return df
+    if rol_actual == "Administrador":
+        return df
+    if "sucursal" in df.columns:
+        return df[df["sucursal"] == sucursal_usuario]
+    return df
 
 
-if menu == "Dashboard":
-    st.header("📊 Dashboard principal")
+ventas_visibles = filtrar_por_rol(ventas_df)
+stock_visible = filtrar_por_rol(stock_df)
+compras_visibles = filtrar_por_rol(compras_df)
+perdidas_visibles = filtrar_por_rol(perdidas_df)
 
-    if not ventas_df.empty:
-        ventas_df["fecha"] = pd.to_datetime(ventas_df["fecha"], errors="coerce")
-        hoy = pd.to_datetime(date.today())
 
-        ventas_hoy = ventas_df[ventas_df["fecha"].dt.date == date.today()]
-        ventas_mes = ventas_df[
-            (ventas_df["fecha"].dt.month == hoy.month) &
-            (ventas_df["fecha"].dt.year == hoy.year)
+if menu == "Inicio":
+    st.markdown(
+        """
+        <div class="welcome-card">
+            <div class="welcome-title">Panel de control empresarial</div>
+            <div class="welcome-subtitle">
+                Controlá ventas, stock, rentabilidad, pérdidas y rendimiento de sucursales desde un solo lugar.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if not ventas_visibles.empty:
+        ventas_visibles["fecha"] = pd.to_datetime(ventas_visibles["fecha"], errors="coerce")
+        hoy = date.today()
+        fecha_hoy = pd.to_datetime(hoy)
+
+        ventas_hoy = ventas_visibles[ventas_visibles["fecha"].dt.date == hoy]
+        ventas_mes = ventas_visibles[
+            (ventas_visibles["fecha"].dt.month == fecha_hoy.month) &
+            (ventas_visibles["fecha"].dt.year == fecha_hoy.year)
         ]
-        ventas_anio = ventas_df[ventas_df["fecha"].dt.year == hoy.year]
+        ventas_anio = ventas_visibles[ventas_visibles["fecha"].dt.year == fecha_hoy.year]
 
-        facturacion_hoy = ventas_hoy["total"].sum()
-        facturacion_mes = ventas_mes["total"].sum()
-        facturacion_anio = ventas_anio["total"].sum()
+        fact_hoy = ventas_hoy["total"].sum()
+        fact_mes = ventas_mes["total"].sum()
+        fact_anio = ventas_anio["total"].sum()
+        ticket = ventas_visibles["total"].mean()
         ganancia_mes = ventas_mes["ganancia"].sum()
-        cantidad_ventas = len(ventas_df)
-        ticket_promedio = ventas_df["total"].mean() if len(ventas_df) > 0 else 0
     else:
-        facturacion_hoy = 0
-        facturacion_mes = 0
-        facturacion_anio = 0
-        ganancia_mes = 0
-        cantidad_ventas = 0
-        ticket_promedio = 0
+        fact_hoy = fact_mes = fact_anio = ticket = ganancia_mes = 0
 
-    perdida_total = perdidas_df["perdida_total"].sum() if not perdidas_df.empty else 0
+    perdida_total = perdidas_visibles["perdida_total"].sum() if not perdidas_visibles.empty else 0
+    stock_valorizado = (stock_visible["stock"] * stock_visible["precio_compra"]).sum() if not stock_visible.empty else 0
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Facturación hoy", formato_pesos(facturacion_hoy))
-    col2.metric("Facturación mensual", formato_pesos(facturacion_mes))
-    col3.metric("Ganancia mensual", formato_pesos(ganancia_mes))
-    col4.metric("Pérdidas", formato_pesos(perdida_total))
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        metric_card("Ventas de hoy", pesos(fact_hoy), "🛒", "Actualizado en tiempo real")
+    with c2:
+        metric_card("Ventas del mes", pesos(fact_mes), "📈", "Ciclo comercial actual")
+    with c3:
+        metric_card("Ganancia mensual", pesos(ganancia_mes), "💰", "Estimación bruta")
+    with c4:
+        metric_card("Ticket promedio", pesos(ticket), "🎟️", "Promedio por venta")
 
-    col5, col6, col7, col8 = st.columns(4)
-    col5.metric("Facturación anual", formato_pesos(facturacion_anio))
-    col6.metric("Cantidad de ventas", cantidad_ventas)
-    col7.metric("Ticket promedio", formato_pesos(ticket_promedio))
-    col8.metric("Stock valorizado", formato_pesos((stock_df["stock"] * stock_df["precio_compra"]).sum()))
+    c5, c6, c7, c8 = st.columns(4)
+    with c5:
+        metric_card("Ventas del año", pesos(fact_anio), "📅", "Acumulado anual")
+    with c6:
+        metric_card("Stock valorizado", pesos(stock_valorizado), "📦", "Costo de inventario")
+    with c7:
+        metric_card("Pérdidas registradas", pesos(perdida_total), "⚠️", "Control operativo")
+    with c8:
+        metric_card("Resultado estimado", pesos(ganancia_mes - perdida_total), "🏆", "Ganancia menos pérdidas")
 
     st.divider()
 
-    col_a, col_b = st.columns(2)
+    col1, col2 = st.columns([2, 1])
 
-    with col_a:
-        st.subheader("🏆 Ranking de sucursales")
+    with col1:
+        st.markdown('<div class="panel"><div class="panel-title">📈 Evolución de ventas</div>', unsafe_allow_html=True)
+        if not ventas_visibles.empty:
+            ventas_visibles["dia"] = ventas_visibles["fecha"].dt.date
+            ventas_dia = ventas_visibles.groupby("dia")["total"].sum().reset_index()
+            st.line_chart(ventas_dia.set_index("dia"))
+        else:
+            st.info("Todavía no hay ventas cargadas.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown('<div class="panel"><div class="panel-title">🏪 Ranking de sucursales</div>', unsafe_allow_html=True)
         if not ventas_df.empty:
             ranking = ventas_df.groupby("sucursal")["total"].sum().reset_index()
             ranking = ranking.sort_values("total", ascending=False)
-            st.bar_chart(ranking.set_index("sucursal"))
-            st.dataframe(ranking, use_container_width=True)
+            st.dataframe(ranking, use_container_width=True, hide_index=True)
         else:
-            st.info("Todavía no hay ventas cargadas.")
+            st.info("Sin datos de ventas.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_b:
-        st.subheader("⚠️ Productos con bajo stock")
-        bajo_stock = stock_df[stock_df["stock"] <= stock_df["stock_minimo"]]
-        if not bajo_stock.empty:
-            st.warning("Hay productos que necesitan reposición.")
-            st.dataframe(bajo_stock, use_container_width=True)
+    col3, col4, col5 = st.columns(3)
+
+    with col3:
+        st.markdown('<div class="panel"><div class="panel-title">🔥 Productos más vendidos</div>', unsafe_allow_html=True)
+        if not ventas_visibles.empty:
+            top = ventas_visibles.groupby("producto")["cantidad"].sum().reset_index()
+            top = top.sort_values("cantidad", ascending=False).head(8)
+            st.dataframe(top, use_container_width=True, hide_index=True)
         else:
-            st.success("No hay productos con bajo stock.")
+            st.info("Sin ventas.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.subheader("🔥 Productos más vendidos")
-    if not ventas_df.empty:
-        productos = ventas_df.groupby("producto")["cantidad"].sum().reset_index()
-        productos = productos.sort_values("cantidad", ascending=False).head(10)
-        st.bar_chart(productos.set_index("producto"))
-        st.dataframe(productos, use_container_width=True)
-    else:
-        st.info("Todavía no hay productos vendidos.")
+    with col4:
+        st.markdown('<div class="panel"><div class="panel-title">⚠️ Bajo stock</div>', unsafe_allow_html=True)
+        bajo = stock_visible[stock_visible["stock"] <= stock_visible["stock_minimo"]] if not stock_visible.empty else pd.DataFrame()
+        if not bajo.empty:
+            st.dataframe(bajo[["producto", "sucursal", "stock", "stock_minimo"]], use_container_width=True, hide_index=True)
+        else:
+            st.success("Stock en buen estado.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col5:
+        st.markdown('<div class="panel"><div class="panel-title">💳 Medios de pago</div>', unsafe_allow_html=True)
+        if not ventas_visibles.empty:
+            medios = ventas_visibles.groupby("medio_pago")["total"].sum().reset_index()
+            st.dataframe(medios, use_container_width=True, hide_index=True)
+        else:
+            st.info("Sin pagos registrados.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 elif menu == "Ventas":
-    st.header("🛒 Cargar venta diaria")
+    st.header("🛒 Gestión de ventas")
 
-    if stock_df.empty:
+    if stock_visible.empty:
         st.warning("Primero cargá productos en stock.")
     else:
         with st.form("form_venta"):
-            col1, col2, col3 = st.columns(3)
+            c1, c2, c3 = st.columns(3)
 
-            sucursal = col1.selectbox("Sucursal", SUCURSALES)
+            if rol_actual == "Administrador":
+                sucursal = c1.selectbox("Sucursal", SUCURSALES)
+            else:
+                sucursal = sucursal_usuario
+                c1.text_input("Sucursal", value=sucursal, disabled=True)
+
             stock_sucursal = stock_df[stock_df["sucursal"] == sucursal]
 
             if stock_sucursal.empty:
-                st.warning("No hay productos cargados para esta sucursal.")
-                producto_seleccionado = None
+                st.warning("No hay productos en esta sucursal.")
+                producto_nombre = None
             else:
-                producto_nombre = col2.selectbox("Producto", stock_sucursal["producto"].unique())
-                producto_row = stock_sucursal[stock_sucursal["producto"] == producto_nombre].iloc[0]
-                producto_seleccionado = producto_row
+                producto_nombre = c2.selectbox("Producto", stock_sucursal["producto"].unique())
 
-            cantidad = col3.number_input("Cantidad vendida", min_value=1, step=1)
+            cantidad = c3.number_input("Cantidad", min_value=1, step=1)
 
-            col4, col5, col6 = st.columns(3)
+            c4, c5, c6 = st.columns(3)
 
-            if producto_seleccionado is not None:
-                precio_unitario = col4.number_input(
-                    "Precio unitario",
-                    min_value=0.0,
-                    value=float(producto_seleccionado["precio_venta"]),
-                    step=100.0
-                )
-                precio_compra = float(producto_seleccionado["precio_compra"])
-                stock_actual = int(producto_seleccionado["stock"])
+            if producto_nombre:
+                row = stock_sucursal[stock_sucursal["producto"] == producto_nombre].iloc[0]
+                precio_unitario = c4.number_input("Precio unitario", value=float(row["precio_venta"]), min_value=0.0, step=100.0)
+                precio_compra = float(row["precio_compra"])
+                stock_actual = int(row["stock"])
             else:
-                precio_unitario = col4.number_input("Precio unitario", min_value=0.0, step=100.0)
+                row = None
+                precio_unitario = c4.number_input("Precio unitario", min_value=0.0, step=100.0)
                 precio_compra = 0
                 stock_actual = 0
 
-            descuento = col5.number_input("Descuento", min_value=0.0, value=0.0, step=100.0)
-            medio_pago = col6.selectbox("Medio de pago", MEDIOS_PAGO)
+            descuento = c5.number_input("Descuento", min_value=0.0, value=0.0, step=100.0)
+            medio_pago = c6.selectbox("Medio de pago", MEDIOS_PAGO)
 
-            col7, col8, col9 = st.columns(3)
-            vendedor = col7.text_input("Vendedor")
-            cliente = col8.text_input("Cliente")
-            comprobante = col9.text_input("Comprobante / Nº venta")
+            c7, c8, c9 = st.columns(3)
+            vendedor = c7.text_input("Vendedor", value=usuario_actual)
+            cliente = c8.text_input("Cliente")
+            comprobante = c9.text_input("Comprobante")
 
             total = cantidad * precio_unitario - descuento
             costo_total = cantidad * precio_compra
             ganancia = total - costo_total
             margen = (ganancia / total * 100) if total > 0 else 0
 
-            st.info(
-                f"Total venta: {formato_pesos(total)} | "
-                f"Ganancia estimada: {formato_pesos(ganancia)} | "
-                f"Margen: {margen:.2f}% | "
-                f"Stock actual: {stock_actual}"
-            )
+            st.info(f"Total: {pesos(total)} | Ganancia: {pesos(ganancia)} | Margen: {margen:.2f}% | Stock actual: {stock_actual}")
 
             guardar = st.form_submit_button("Guardar venta")
 
             if guardar:
-                if producto_seleccionado is None:
-                    st.error("No seleccionaste un producto válido.")
+                if row is None:
+                    st.error("Seleccioná un producto válido.")
                 elif cantidad > stock_actual:
-                    st.error("No hay stock suficiente para esta venta.")
+                    st.error("No hay stock suficiente.")
                 else:
-                    nueva_venta = {
+                    nueva = {
                         "fecha": str(datetime.now()),
                         "sucursal": sucursal,
-                        "codigo": producto_seleccionado["codigo"],
-                        "producto": producto_seleccionado["producto"],
-                        "categoria": producto_seleccionado["categoria"],
+                        "codigo": row["codigo"],
+                        "producto": row["producto"],
+                        "categoria": row["categoria"],
                         "cantidad": cantidad,
                         "precio_unitario": precio_unitario,
                         "descuento": descuento,
@@ -406,11 +732,11 @@ elif menu == "Ventas":
                         "comprobante": comprobante
                     }
 
-                    ventas_df = pd.concat([ventas_df, pd.DataFrame([nueva_venta])], ignore_index=True)
+                    ventas_df = pd.concat([ventas_df, pd.DataFrame([nueva])], ignore_index=True)
                     guardar_csv(ventas_df, VENTAS_FILE)
 
                     idx = stock_df[
-                        (stock_df["codigo"] == producto_seleccionado["codigo"]) &
+                        (stock_df["codigo"] == row["codigo"]) &
                         (stock_df["sucursal"] == sucursal)
                     ].index[0]
 
@@ -421,60 +747,69 @@ elif menu == "Ventas":
                     st.rerun()
 
     st.subheader("Historial de ventas")
-    st.dataframe(ventas_df, use_container_width=True)
+    st.dataframe(ventas_visibles, use_container_width=True, hide_index=True)
 
 
 elif menu == "Stock":
-    st.header("📦 Stock general y por sucursal")
+    st.header("📦 Gestión de stock")
 
-    col1, col2, col3 = st.columns(3)
-    filtro_sucursal = col1.selectbox("Filtrar por sucursal", ["Todas"] + SUCURSALES)
-    filtro_categoria = col2.selectbox("Filtrar por categoría", ["Todas"] + CATEGORIAS)
-    buscar = col3.text_input("Buscar producto")
+    c1, c2, c3 = st.columns(3)
 
-    stock_filtrado = stock_df.copy()
+    if rol_actual == "Administrador":
+        filtro_sucursal = c1.selectbox("Sucursal", ["Todas"] + SUCURSALES)
+    else:
+        filtro_sucursal = sucursal_usuario
+        c1.text_input("Sucursal", value=sucursal_usuario, disabled=True)
+
+    filtro_categoria = c2.selectbox("Categoría", ["Todas"] + CATEGORIAS)
+    buscar = c3.text_input("Buscar producto")
+
+    df = stock_visible.copy()
 
     if filtro_sucursal != "Todas":
-        stock_filtrado = stock_filtrado[stock_filtrado["sucursal"] == filtro_sucursal]
+        df = df[df["sucursal"] == filtro_sucursal]
 
     if filtro_categoria != "Todas":
-        stock_filtrado = stock_filtrado[stock_filtrado["categoria"] == filtro_categoria]
+        df = df[df["categoria"] == filtro_categoria]
 
     if buscar:
-        stock_filtrado = stock_filtrado[
-            stock_filtrado["producto"].str.contains(buscar, case=False, na=False)
-        ]
+        df = df[df["producto"].str.contains(buscar, case=False, na=False)]
 
-    st.dataframe(stock_filtrado, use_container_width=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
     st.divider()
-    st.subheader("➕ Agregar producto al stock")
+    st.subheader("➕ Agregar producto")
 
     with st.form("form_stock"):
-        col1, col2, col3 = st.columns(3)
-        codigo = col1.text_input("Código")
-        producto = col2.text_input("Producto")
-        categoria = col3.selectbox("Categoría", CATEGORIAS)
+        c1, c2, c3 = st.columns(3)
+        codigo = c1.text_input("Código")
+        producto = c2.text_input("Producto")
+        categoria = c3.selectbox("Categoría", CATEGORIAS)
 
-        col4, col5, col6 = st.columns(3)
-        marca = col4.text_input("Marca")
-        proveedor = col5.text_input("Proveedor")
-        sucursal = col6.selectbox("Sucursal", SUCURSALES)
+        c4, c5, c6 = st.columns(3)
+        marca = c4.text_input("Marca")
+        proveedor = c5.text_input("Proveedor")
 
-        col7, col8, col9 = st.columns(3)
-        precio_compra = col7.number_input("Precio de compra", min_value=0.0, step=100.0)
-        precio_venta = col8.number_input("Precio de venta", min_value=0.0, step=100.0)
-        cantidad = col9.number_input("Cantidad disponible", min_value=0, step=1)
+        if rol_actual == "Administrador":
+            sucursal = c6.selectbox("Sucursal", SUCURSALES)
+        else:
+            sucursal = sucursal_usuario
+            c6.text_input("Sucursal", value=sucursal, disabled=True)
 
-        col10, col11, col12 = st.columns(3)
-        stock_minimo = col10.number_input("Stock mínimo", min_value=0, step=1)
-        fecha_ingreso = col11.date_input("Fecha de ingreso", value=date.today())
-        fecha_vencimiento = col12.text_input("Fecha de vencimiento si aplica")
+        c7, c8, c9 = st.columns(3)
+        precio_compra = c7.number_input("Precio compra", min_value=0.0, step=100.0)
+        precio_venta = c8.number_input("Precio venta", min_value=0.0, step=100.0)
+        cantidad = c9.number_input("Stock", min_value=0, step=1)
 
-        guardar_producto = st.form_submit_button("Guardar producto")
+        c10, c11, c12 = st.columns(3)
+        stock_minimo = c10.number_input("Stock mínimo", min_value=0, step=1)
+        fecha_ingreso = c11.date_input("Fecha ingreso", value=date.today())
+        fecha_vencimiento = c12.text_input("Fecha vencimiento")
 
-        if guardar_producto:
-            nuevo_producto = {
+        guardar = st.form_submit_button("Guardar producto")
+
+        if guardar:
+            nuevo = {
                 "codigo": codigo,
                 "producto": producto,
                 "categoria": categoria,
@@ -489,121 +824,107 @@ elif menu == "Stock":
                 "fecha_vencimiento": fecha_vencimiento
             }
 
-            stock_df = pd.concat([stock_df, pd.DataFrame([nuevo_producto])], ignore_index=True)
+            stock_df = pd.concat([stock_df, pd.DataFrame([nuevo])], ignore_index=True)
             guardar_csv(stock_df, STOCK_FILE)
-            st.success("Producto agregado correctamente.")
+            st.success("Producto guardado.")
             st.rerun()
-
-    st.divider()
-    st.subheader("🔁 Transferir stock entre sucursales")
-
-    with st.form("form_transferencia"):
-        col1, col2, col3 = st.columns(3)
-        origen = col1.selectbox("Sucursal origen", SUCURSALES)
-        destino = col2.selectbox("Sucursal destino", SUCURSALES)
-
-        stock_origen = stock_df[stock_df["sucursal"] == origen]
-
-        if not stock_origen.empty:
-            producto_transferir = col3.selectbox("Producto a transferir", stock_origen["producto"].unique())
-            cantidad_transferir = st.number_input("Cantidad a transferir", min_value=1, step=1)
-        else:
-            producto_transferir = None
-            cantidad_transferir = 0
-            st.warning("La sucursal origen no tiene stock.")
-
-        transferir = st.form_submit_button("Transferir")
-
-        if transferir:
-            if origen == destino:
-                st.error("La sucursal origen y destino no pueden ser iguales.")
-            elif producto_transferir is None:
-                st.error("No hay producto para transferir.")
-            else:
-                row_origen = stock_df[
-                    (stock_df["sucursal"] == origen) &
-                    (stock_df["producto"] == producto_transferir)
-                ].iloc[0]
-
-                idx_origen = row_origen.name
-                stock_actual = int(row_origen["stock"])
-
-                if cantidad_transferir > stock_actual:
-                    st.error("No hay stock suficiente para transferir.")
-                else:
-                    stock_df.loc[idx_origen, "stock"] = stock_actual - cantidad_transferir
-
-                    existe_destino = stock_df[
-                        (stock_df["sucursal"] == destino) &
-                        (stock_df["codigo"] == row_origen["codigo"])
-                    ]
-
-                    if not existe_destino.empty:
-                        idx_destino = existe_destino.index[0]
-                        stock_df.loc[idx_destino, "stock"] += cantidad_transferir
-                    else:
-                        nuevo = row_origen.copy()
-                        nuevo["sucursal"] = destino
-                        nuevo["stock"] = cantidad_transferir
-                        stock_df = pd.concat([stock_df, pd.DataFrame([nuevo])], ignore_index=True)
-
-                    guardar_csv(stock_df, STOCK_FILE)
-                    st.success("Transferencia realizada correctamente.")
-                    st.rerun()
 
 
 elif menu == "Sucursales":
-    st.header("🏪 Análisis por sucursal")
+    st.header("🏪 Sucursales")
 
     sucursal = st.selectbox("Seleccionar sucursal", SUCURSALES)
 
-    ventas_sucursal = ventas_df[ventas_df["sucursal"] == sucursal] if not ventas_df.empty else pd.DataFrame()
-    stock_sucursal = stock_df[stock_df["sucursal"] == sucursal]
-    perdidas_sucursal = perdidas_df[perdidas_df["sucursal"] == sucursal] if not perdidas_df.empty else pd.DataFrame()
+    v = ventas_df[ventas_df["sucursal"] == sucursal] if not ventas_df.empty else pd.DataFrame()
+    s = stock_df[stock_df["sucursal"] == sucursal]
+    p = perdidas_df[perdidas_df["sucursal"] == sucursal] if not perdidas_df.empty else pd.DataFrame()
 
-    facturacion = ventas_sucursal["total"].sum() if not ventas_sucursal.empty else 0
-    ganancia = ventas_sucursal["ganancia"].sum() if not ventas_sucursal.empty else 0
-    perdida = perdidas_sucursal["perdida_total"].sum() if not perdidas_sucursal.empty else 0
-    stock_valorizado = (stock_sucursal["stock"] * stock_sucursal["precio_compra"]).sum()
+    fact = v["total"].sum() if not v.empty else 0
+    gan = v["ganancia"].sum() if not v.empty else 0
+    per = p["perdida_total"].sum() if not p.empty else 0
+    inv = (s["stock"] * s["precio_compra"]).sum() if not s.empty else 0
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Facturación", formato_pesos(facturacion))
-    col2.metric("Ganancia", formato_pesos(ganancia))
-    col3.metric("Pérdidas", formato_pesos(perdida))
-    col4.metric("Stock valorizado", formato_pesos(stock_valorizado))
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        metric_card("Facturación", pesos(fact), "💰")
+    with c2:
+        metric_card("Ganancia", pesos(gan), "📈")
+    with c3:
+        metric_card("Pérdidas", pesos(per), "⚠️")
+    with c4:
+        metric_card("Inventario", pesos(inv), "📦")
 
-    st.subheader("Ventas de la sucursal")
-    st.dataframe(ventas_sucursal, use_container_width=True)
+    st.subheader("Ventas")
+    st.dataframe(v, use_container_width=True, hide_index=True)
 
-    st.subheader("Stock de la sucursal")
-    st.dataframe(stock_sucursal, use_container_width=True)
+    st.subheader("Stock")
+    st.dataframe(s, use_container_width=True, hide_index=True)
 
 
-elif menu == "Compras a proveedores":
+elif menu == "Clientes":
+    st.header("👥 Clientes")
+
+    with st.form("form_cliente"):
+        c1, c2, c3 = st.columns(3)
+        nombre = c1.text_input("Nombre")
+        telefono = c2.text_input("Teléfono")
+        email = c3.text_input("Email")
+
+        c4, c5, c6 = st.columns(3)
+        mascota = c4.text_input("Mascota")
+        tipo = c5.selectbox("Tipo de mascota", ["Perro", "Gato", "Ave", "Roedor", "Otro"])
+        obs = c6.text_input("Observaciones")
+
+        guardar = st.form_submit_button("Guardar cliente")
+
+        if guardar:
+            nuevo = {
+                "nombre": nombre,
+                "telefono": telefono,
+                "mascota": mascota,
+                "tipo_mascota": tipo,
+                "email": email,
+                "observaciones": obs
+            }
+            clientes_df = pd.concat([clientes_df, pd.DataFrame([nuevo])], ignore_index=True)
+            guardar_csv(clientes_df, CLIENTES_FILE)
+            st.success("Cliente guardado.")
+            st.rerun()
+
+    st.dataframe(clientes_df, use_container_width=True, hide_index=True)
+
+
+elif menu == "Compras":
     st.header("🚚 Compras a proveedores")
 
     with st.form("form_compra"):
-        col1, col2, col3 = st.columns(3)
-        proveedor = col1.text_input("Proveedor")
-        codigo = col2.text_input("Código producto")
-        producto = col3.text_input("Producto")
+        c1, c2, c3 = st.columns(3)
+        proveedor = c1.text_input("Proveedor")
+        codigo = c2.text_input("Código")
+        producto = c3.text_input("Producto")
 
-        col4, col5, col6 = st.columns(3)
-        categoria = col4.selectbox("Categoría", CATEGORIAS)
-        sucursal = col5.selectbox("Sucursal destino", SUCURSALES)
-        cantidad = col6.number_input("Cantidad comprada", min_value=1, step=1)
+        c4, c5, c6 = st.columns(3)
+        categoria = c4.selectbox("Categoría", CATEGORIAS)
 
-        col7, col8 = st.columns(2)
-        precio_compra_unitario = col7.number_input("Precio compra unitario", min_value=0.0, step=100.0)
-        precio_venta = col8.number_input("Precio venta sugerido", min_value=0.0, step=100.0)
+        if rol_actual == "Administrador":
+            sucursal = c5.selectbox("Sucursal destino", SUCURSALES)
+        else:
+            sucursal = sucursal_usuario
+            c5.text_input("Sucursal destino", value=sucursal, disabled=True)
 
-        costo_total = cantidad * precio_compra_unitario
-        st.info(f"Costo total de compra: {formato_pesos(costo_total)}")
+        cantidad = c6.number_input("Cantidad", min_value=1, step=1)
 
-        guardar_compra = st.form_submit_button("Guardar compra y actualizar stock")
+        c7, c8 = st.columns(2)
+        precio_compra = c7.number_input("Precio compra unitario", min_value=0.0, step=100.0)
+        precio_venta = c8.number_input("Precio venta sugerido", min_value=0.0, step=100.0)
 
-        if guardar_compra:
-            nueva_compra = {
+        costo_total = cantidad * precio_compra
+        st.info(f"Costo total: {pesos(costo_total)}")
+
+        guardar = st.form_submit_button("Guardar compra")
+
+        if guardar:
+            nueva = {
                 "fecha": str(datetime.now()),
                 "proveedor": proveedor,
                 "codigo": codigo,
@@ -611,11 +932,11 @@ elif menu == "Compras a proveedores":
                 "categoria": categoria,
                 "sucursal": sucursal,
                 "cantidad": cantidad,
-                "precio_compra_unitario": precio_compra_unitario,
+                "precio_compra_unitario": precio_compra,
                 "costo_total": costo_total
             }
 
-            compras_df = pd.concat([compras_df, pd.DataFrame([nueva_compra])], ignore_index=True)
+            compras_df = pd.concat([compras_df, pd.DataFrame([nueva])], ignore_index=True)
             guardar_csv(compras_df, COMPRAS_FILE)
 
             existe = stock_df[
@@ -626,7 +947,7 @@ elif menu == "Compras a proveedores":
             if not existe.empty:
                 idx = existe.index[0]
                 stock_df.loc[idx, "stock"] += cantidad
-                stock_df.loc[idx, "precio_compra"] = precio_compra_unitario
+                stock_df.loc[idx, "precio_compra"] = precio_compra
                 stock_df.loc[idx, "precio_venta"] = precio_venta
             else:
                 nuevo_stock = {
@@ -636,7 +957,7 @@ elif menu == "Compras a proveedores":
                     "marca": "",
                     "proveedor": proveedor,
                     "sucursal": sucursal,
-                    "precio_compra": precio_compra_unitario,
+                    "precio_compra": precio_compra,
                     "precio_venta": precio_venta,
                     "stock": cantidad,
                     "stock_minimo": 5,
@@ -649,199 +970,119 @@ elif menu == "Compras a proveedores":
             st.success("Compra guardada y stock actualizado.")
             st.rerun()
 
-    st.subheader("Historial de compras")
-    st.dataframe(compras_df, use_container_width=True)
-
-
-elif menu == "Clientes":
-    st.header("👥 Clientes")
-
-    with st.form("form_cliente"):
-        col1, col2, col3 = st.columns(3)
-        nombre = col1.text_input("Nombre del cliente")
-        telefono = col2.text_input("Teléfono")
-        email = col3.text_input("Email")
-
-        col4, col5, col6 = st.columns(3)
-        mascota = col4.text_input("Nombre de mascota")
-        tipo_mascota = col5.selectbox("Tipo de mascota", ["Perro", "Gato", "Ave", "Roedor", "Otro"])
-        observaciones = col6.text_input("Observaciones")
-
-        guardar_cliente = st.form_submit_button("Guardar cliente")
-
-        if guardar_cliente:
-            nuevo_cliente = {
-                "nombre": nombre,
-                "telefono": telefono,
-                "mascota": mascota,
-                "tipo_mascota": tipo_mascota,
-                "email": email,
-                "observaciones": observaciones
-            }
-
-            clientes_df = pd.concat([clientes_df, pd.DataFrame([nuevo_cliente])], ignore_index=True)
-            guardar_csv(clientes_df, CLIENTES_FILE)
-            st.success("Cliente guardado correctamente.")
-            st.rerun()
-
-    st.subheader("Base de clientes")
-    st.dataframe(clientes_df, use_container_width=True)
-
-    st.subheader("Historial por cliente")
-    if not ventas_df.empty:
-        cliente_buscar = st.text_input("Buscar cliente en ventas")
-        if cliente_buscar:
-            historial = ventas_df[
-                ventas_df["cliente"].str.contains(cliente_buscar, case=False, na=False)
-            ]
-            st.dataframe(historial, use_container_width=True)
-
-            if not historial.empty:
-                st.metric("Total gastado", formato_pesos(historial["total"].sum()))
-                st.metric("Última compra", historial["fecha"].max())
+    st.dataframe(compras_visibles, use_container_width=True, hide_index=True)
 
 
 elif menu == "Ganancias y pérdidas":
     st.header("💰 Ganancias y pérdidas")
 
-    if not ventas_df.empty:
-        total_facturado = ventas_df["total"].sum()
-        costo_total = ventas_df["costo_total"].sum()
-        ganancia_total = ventas_df["ganancia"].sum()
-    else:
-        total_facturado = 0
-        costo_total = 0
-        ganancia_total = 0
+    total_fact = ventas_df["total"].sum() if not ventas_df.empty else 0
+    total_costo = ventas_df["costo_total"].sum() if not ventas_df.empty else 0
+    total_gan = ventas_df["ganancia"].sum() if not ventas_df.empty else 0
+    total_perd = perdidas_df["perdida_total"].sum() if not perdidas_df.empty else 0
 
-    perdida_total = perdidas_df["perdida_total"].sum() if not perdidas_df.empty else 0
-    resultado_neto = ganancia_total - perdida_total
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        metric_card("Facturación", pesos(total_fact), "💰")
+    with c2:
+        metric_card("Costo vendido", pesos(total_costo), "📦")
+    with c3:
+        metric_card("Ganancia bruta", pesos(total_gan), "📈")
+    with c4:
+        metric_card("Resultado neto", pesos(total_gan - total_perd), "🏆")
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Facturación total", formato_pesos(total_facturado))
-    col2.metric("Costo total vendido", formato_pesos(costo_total))
-    col3.metric("Ganancia bruta", formato_pesos(ganancia_total))
-    col4.metric("Resultado neto", formato_pesos(resultado_neto))
-
-    st.divider()
     st.subheader("Registrar pérdida")
 
     with st.form("form_perdida"):
-        col1, col2, col3 = st.columns(3)
-        sucursal = col1.selectbox("Sucursal", SUCURSALES)
+        c1, c2, c3 = st.columns(3)
+        sucursal = c1.selectbox("Sucursal", SUCURSALES)
         stock_sucursal = stock_df[stock_df["sucursal"] == sucursal]
 
         if not stock_sucursal.empty:
-            producto = col2.selectbox("Producto", stock_sucursal["producto"].unique())
-            row_producto = stock_sucursal[stock_sucursal["producto"] == producto].iloc[0]
-            codigo = row_producto["codigo"]
-            costo_unitario = float(row_producto["precio_compra"])
-            stock_actual = int(row_producto["stock"])
+            producto = c2.selectbox("Producto", stock_sucursal["producto"].unique())
+            row = stock_sucursal[stock_sucursal["producto"] == producto].iloc[0]
+            codigo = row["codigo"]
+            costo = float(row["precio_compra"])
         else:
-            producto = col2.text_input("Producto")
+            producto = c2.text_input("Producto")
             codigo = ""
-            costo_unitario = 0
-            stock_actual = 0
+            costo = 0
 
-        motivo = col3.selectbox(
-            "Motivo",
-            ["Vencimiento", "Rotura", "Faltante de stock", "Descuento", "Otro"]
-        )
+        motivo = c3.selectbox("Motivo", ["Vencimiento", "Rotura", "Faltante", "Descuento", "Otro"])
 
-        col4, col5 = st.columns(2)
-        cantidad = col4.number_input("Cantidad perdida", min_value=1, step=1)
-        observaciones = col5.text_input("Observaciones")
+        c4, c5 = st.columns(2)
+        cantidad = c4.number_input("Cantidad", min_value=1, step=1)
+        obs = c5.text_input("Observaciones")
 
-        perdida_total_item = cantidad * costo_unitario
-        st.info(f"Pérdida estimada: {formato_pesos(perdida_total_item)}")
+        perdida = cantidad * costo
+        st.info(f"Pérdida estimada: {pesos(perdida)}")
 
-        guardar_perdida = st.form_submit_button("Guardar pérdida")
+        guardar = st.form_submit_button("Guardar pérdida")
 
-        if guardar_perdida:
-            nueva_perdida = {
+        if guardar:
+            nueva = {
                 "fecha": str(datetime.now()),
                 "sucursal": sucursal,
                 "codigo": codigo,
                 "producto": producto,
                 "motivo": motivo,
                 "cantidad": cantidad,
-                "costo_unitario": costo_unitario,
-                "perdida_total": perdida_total_item,
-                "observaciones": observaciones
+                "costo_unitario": costo,
+                "perdida_total": perdida,
+                "observaciones": obs
             }
 
-            perdidas_df = pd.concat([perdidas_df, pd.DataFrame([nueva_perdida])], ignore_index=True)
+            perdidas_df = pd.concat([perdidas_df, pd.DataFrame([nueva])], ignore_index=True)
             guardar_csv(perdidas_df, PERDIDAS_FILE)
-
-            if not stock_sucursal.empty and cantidad <= stock_actual:
-                idx = stock_df[
-                    (stock_df["sucursal"] == sucursal) &
-                    (stock_df["codigo"] == codigo)
-                ].index[0]
-                stock_df.loc[idx, "stock"] = stock_actual - cantidad
-                guardar_csv(stock_df, STOCK_FILE)
-
             st.success("Pérdida registrada.")
             st.rerun()
 
-    st.subheader("Historial de pérdidas")
-    st.dataframe(perdidas_df, use_container_width=True)
+    st.dataframe(perdidas_df, use_container_width=True, hide_index=True)
 
 
 elif menu == "Reportes":
-    st.header("📈 Reportes")
+    st.header("📊 Reportes avanzados")
 
-    if ventas_df.empty:
-        st.info("Todavía no hay ventas para generar reportes.")
+    if ventas_visibles.empty:
+        st.info("No hay ventas para analizar.")
     else:
-        ventas_df["fecha"] = pd.to_datetime(ventas_df["fecha"], errors="coerce")
-        ventas_df["mes"] = ventas_df["fecha"].dt.to_period("M").astype(str)
-        ventas_df["dia"] = ventas_df["fecha"].dt.date
+        ventas_visibles["fecha"] = pd.to_datetime(ventas_visibles["fecha"], errors="coerce")
+        ventas_visibles["dia"] = ventas_visibles["fecha"].dt.date
+        ventas_visibles["mes"] = ventas_visibles["fecha"].dt.to_period("M").astype(str)
 
         st.subheader("Ventas por día")
-        ventas_dia = ventas_df.groupby("dia")["total"].sum().reset_index()
+        ventas_dia = ventas_visibles.groupby("dia")["total"].sum().reset_index()
         st.line_chart(ventas_dia.set_index("dia"))
-        st.dataframe(ventas_dia, use_container_width=True)
 
         st.subheader("Ventas por mes")
-        ventas_mes = ventas_df.groupby("mes")["total"].sum().reset_index()
+        ventas_mes = ventas_visibles.groupby("mes")["total"].sum().reset_index()
         st.bar_chart(ventas_mes.set_index("mes"))
-        st.dataframe(ventas_mes, use_container_width=True)
 
-        st.subheader("Productos más vendidos")
-        mas_vendidos = ventas_df.groupby("producto")["cantidad"].sum().reset_index()
-        mas_vendidos = mas_vendidos.sort_values("cantidad", ascending=False)
-        st.dataframe(mas_vendidos, use_container_width=True)
+        st.subheader("Productos más rentables")
+        rentables = ventas_visibles.groupby("producto")["ganancia"].sum().reset_index()
+        rentables = rentables.sort_values("ganancia", ascending=False)
+        st.dataframe(rentables, use_container_width=True, hide_index=True)
 
-        st.subheader("Productos con mayor ganancia")
-        mayor_ganancia = ventas_df.groupby("producto")["ganancia"].sum().reset_index()
-        mayor_ganancia = mayor_ganancia.sort_values("ganancia", ascending=False)
-        st.dataframe(mayor_ganancia, use_container_width=True)
+        st.subheader("Ventas por categoría")
+        cat = ventas_visibles.groupby("categoria")["total"].sum().reset_index()
+        st.bar_chart(cat.set_index("categoria"))
 
-        st.subheader("Facturación por categoría")
-        categoria = ventas_df.groupby("categoria")["total"].sum().reset_index()
-        st.bar_chart(categoria.set_index("categoria"))
-        st.dataframe(categoria, use_container_width=True)
-
-        st.subheader("Facturación por medio de pago")
-        medio = ventas_df.groupby("medio_pago")["total"].sum().reset_index()
-        st.dataframe(medio, use_container_width=True)
+        st.subheader("Medios de pago")
+        medios = ventas_visibles.groupby("medio_pago")["total"].sum().reset_index()
+        st.dataframe(medios, use_container_width=True, hide_index=True)
 
 
 elif menu == "Importar Excel":
-    st.header("📥 Importar datos desde Excel")
+    st.header("📥 Importar Excel")
 
-    st.info("Podés importar archivos Excel con columnas similares a las tablas del sistema.")
+    tipo = st.selectbox("Tipo de datos", ["Stock", "Ventas", "Compras", "Clientes"])
+    archivo = st.file_uploader("Subir Excel", type=["xlsx", "xls"])
 
-    tipo = st.selectbox("¿Qué querés importar?", ["Stock", "Ventas", "Compras", "Clientes"])
-
-    archivo = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
-
-    if archivo is not None:
+    if archivo:
         df_importado = pd.read_excel(archivo)
-        st.subheader("Vista previa")
-        st.dataframe(df_importado, use_container_width=True)
+        st.dataframe(df_importado, use_container_width=True, hide_index=True)
 
-        if st.button("Importar y reemplazar datos actuales"):
+        if st.button("Importar y reemplazar datos"):
             if tipo == "Stock":
                 guardar_csv(df_importado, STOCK_FILE)
             elif tipo == "Ventas":
@@ -851,12 +1092,12 @@ elif menu == "Importar Excel":
             elif tipo == "Clientes":
                 guardar_csv(df_importado, CLIENTES_FILE)
 
-            st.success("Datos importados correctamente.")
+            st.success("Datos importados.")
             st.rerun()
 
 
 elif menu == "Exportar datos":
-    st.header("📤 Exportar información")
+    st.header("📤 Exportar datos")
 
     excel_data = exportar_excel({
         "Ventas": ventas_df,
@@ -867,24 +1108,24 @@ elif menu == "Exportar datos":
     })
 
     st.download_button(
-        label="Descargar todo en Excel",
+        "Descargar Excel completo",
         data=excel_data,
-        file_name="reporte_petshop.xlsx",
+        file_name="petshop_manager_pro.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    st.subheader("Datos disponibles")
-    st.write("Ventas")
-    st.dataframe(ventas_df, use_container_width=True)
 
-    st.write("Stock")
-    st.dataframe(stock_df, use_container_width=True)
+elif menu == "Configuración":
+    st.header("⚙️ Configuración del sistema")
 
-    st.write("Compras")
-    st.dataframe(compras_df, use_container_width=True)
+    st.info("Usuarios demo disponibles:")
 
-    st.write("Clientes")
-    st.dataframe(clientes_df, use_container_width=True)
+    usuarios_demo = pd.DataFrame([
+        {"Usuario": "admin", "Contraseña": "1234", "Rol": "Administrador", "Acceso": "Todo el sistema"},
+        {"Usuario": "encargado", "Contraseña": "1234", "Rol": "Encargado", "Acceso": "Sucursal asignada"},
+        {"Usuario": "vendedor", "Contraseña": "1234", "Rol": "Vendedor", "Acceso": "Ventas y clientes"},
+    ])
 
-    st.write("Pérdidas")
-    st.dataframe(perdidas_df, use_container_width=True)
+    st.dataframe(usuarios_demo, use_container_width=True, hide_index=True)
+
+    st.warning("Esta versión tiene login demo. El siguiente paso profesional es conectarlo a Supabase para usuarios reales y base de datos online.")
