@@ -211,7 +211,7 @@ st.markdown(
     .stApp { background: #f8fafc; }
     header[data-testid="stHeader"] { background: transparent; }
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg,#ff7a00 0%,#ff8f1f 38%,#ff9f1c 70%,#ffffff 100%);
+        background: linear-gradient(180deg,#ff7a00 0%,#ff850f 45%,#e66700 100%);
         border-right: 1px solid #ffd3a3;
     }
     section[data-testid="stSidebar"] > div { padding-top: 1rem; }
@@ -221,13 +221,36 @@ st.markdown(
     .sidebar-divider { margin: 18px auto; width: 82%; height: 1px; background: rgba(255,255,255,0.7); }
     .stRadio > div { gap: 10px; }
     .stRadio label {
-        background: linear-gradient(135deg, #ffffff 0%, #fff5eb 100%);
-        border: 1px solid #ffd2a8; border-radius: 8px; padding: 10px 14px;
-        font-weight: 800; color: #1f2937; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        width: 100%; transition: 0.2s;
+        background: rgba(255,255,255,0.14) !important;
+        border: 1px solid rgba(255,255,255,0.75) !important;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-weight: 900;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+        width: 100%;
+        transition: 0.2s;
     }
-    .stRadio label:hover { background: linear-gradient(135deg,#ff7a00 0%,#ff9f1c 100%); color: white; border: 1px solid #ff7a00; transform: translateY(-1px); }
-    .stRadio label p { font-size: 14px !important; font-weight: 800 !important; }
+    .stRadio label:hover {
+        background: #ffffff !important;
+        color: #ff6b00 !important;
+        border: 1px solid #ffffff !important;
+        transform: translateY(-1px);
+    }
+    .stRadio label p {
+        color: inherit !important;
+        font-size: 14px !important;
+        font-weight: 900 !important;
+    }
+    section[data-testid="stSidebar"] * {
+        text-shadow: 0 1px 2px rgba(0,0,0,0.20);
+    }
+    section[data-testid="stSidebar"] .stButton button {
+        background: #ffffff !important;
+        color: #ff6b00 !important;
+        text-shadow: none !important;
+        border: 1px solid #ffffff !important;
+    }
     .main-header { background:white; border:1px solid #edf0f4; border-radius:22px; padding:24px 28px; margin-bottom:20px; box-shadow:0 8px 25px rgba(15,23,42,0.05); }
     .main-title { font-size:34px; font-weight:900; color:#ff6b00; margin-bottom:4px; }
     .main-subtitle { font-size:15px; color:#64748b; font-weight:500; }
@@ -248,7 +271,7 @@ st.markdown(
     .stButton button { background:linear-gradient(135deg,#ff7a00 0%,#ff9f1c 100%); color:white; border:none; border-radius:10px; padding:.7rem 1rem; font-weight:900; box-shadow:0 6px 16px rgba(255,122,0,.28); }
     .stButton button:hover { color:white; background:linear-gradient(135deg,#e66700 0%,#ff7a00 100%); }
     div[data-testid="stDataFrame"] { border-radius:16px; overflow:hidden; }
-    .footer-sidebar { font-size:11px; color:#3f3f46; margin-top:35px; text-align:center; font-weight:800; }
+    .footer-sidebar { font-size:11px; color:#ffffff; margin-top:35px; text-align:center; font-weight:900; }
     </style>
     """,
     unsafe_allow_html=True
@@ -331,14 +354,14 @@ with st.sidebar:
 
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
     st.markdown(f"""
-    <div style="background:white;border-radius:10px;padding:13px;color:#1f2937;font-weight:800;">
+    <div style="background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.70);border-radius:10px;padding:13px;color:white;font-weight:900;">
         🧾 Usuario: {usuario_actual}<br>
         🔐 Rol: {rol_actual}<br>
         🏪 Sucursal: {sucursal_usuario}
     </div>
     """, unsafe_allow_html=True)
     st.markdown("""
-    <div style="background:white;border-radius:10px;padding:13px;color:#1f2937;font-weight:800;margin-top:12px;">
+    <div style="background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.70);border-radius:10px;padding:13px;color:white;font-weight:900;margin-top:12px;">
         📅 Ciclo comercial<br>
         Mayo 2026
     </div>
